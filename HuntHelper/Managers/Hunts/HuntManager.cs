@@ -14,7 +14,6 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Speech.Synthesis;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
@@ -49,9 +48,6 @@ public class HuntManager
     public bool ErrorPopUpVisible = false;
     public string ErrorMessage = string.Empty;
 
-    public SpeechSynthesizer TTS { get; init; } //aint really used anymore except for setting default voice on load
-    public string TTSName { get; set; }
-
     #region chat/flytext colours - make customizable later? prob not.
     private readonly ushort _aTextColour = 12;
     private readonly ushort _bTextColour = 34;
@@ -85,8 +81,6 @@ public class HuntManager
         ImportedTrain = new List<HuntTrainMob>();
 
         ImageFolderPath = Path.Combine(_pluginInterface.AssemblyLocation.Directory?.FullName!, @"Images\Maps\");
-        TTS = new SpeechSynthesizer();
-        TTSName = TTS.Voice.Name;
 
         LoadHuntData();
     }
@@ -121,7 +115,6 @@ public class HuntManager
 
     //bit much, grew big because I don't plan
     public void AddNearbyMobs(List<BattleNpc> nearbyMobs, float zoneMapCoordSize, uint territoryId, uint mapid,
-        bool aTTS, bool bTTS, bool sTTS, string aTTSmsg, string bTTSmsg, string sTTSmsg,
         bool chatA, bool chatB, bool chatS, string chatAmsg, string chatBmsg, string chatSmsg,
         bool flyTxtA, bool flyTxtB, bool flyTxtS)
     {
@@ -138,28 +131,25 @@ public class HuntManager
 
             PriorityCheck(mob);
 
-            //if exists in old mob set, skip tts + chat
+            //if exists in old mob set, skip chat
             if (_previousMobs.Any(hunt => hunt.Mob.NameId == mob.NameId)) continue;
 
-            //Do tts and chat stuff
+            //Do chat stuff
             var rank = GetHuntRank(mob.NameId);
             switch (rank)
             {
                 case HuntRank.A:
-                    NewMobFoundTTS(aTTS, aTTSmsg, mob);
                     SendChatMessage(chatA, chatAmsg, territoryId, mapid, mob, zoneMapCoordSize);
                     SendFlyText(rank, mob, flyTxtA);
                     ACount++;
                     break;
                 case HuntRank.B:
-                    NewMobFoundTTS(bTTS, bTTSmsg, mob);
                     SendChatMessage(chatB, chatBmsg, territoryId, mapid, mob, zoneMapCoordSize);
                     SendFlyText(rank, mob, flyTxtB);
                     BCount++;
                     break;
                 case HuntRank.S:
                 case HuntRank.SS: //don't think ss is actually used lol
-                    NewMobFoundTTS(sTTS, sTTSmsg, mob);
                     SendChatMessage(chatS, chatSmsg, territoryId, mapid, mob, zoneMapCoordSize);
                     SendFlyText(rank, mob, flyTxtS);
                     SCount++;
@@ -286,21 +276,6 @@ public class HuntManager
         _chatGui.Print(sb.BuiltString);
     }
 
-    private void NewMobFoundTTS(bool enabled, string msg, BattleNpc mob)
-    {
-        if (!enabled) return;
-        var message = FormatMessageFlags(msg, mob);
-        //changed to creating a new tts each time because SpeakAsync just queues up to play...
-        var tts = new SpeechSynthesizer();
-        tts.SelectVoice(TTSName);
-        var prompt = tts.SpeakAsync(message);
-        Task.Run(() =>
-            { //this works but looks weird?
-                while (!prompt.IsCompleted) ;
-                tts.Dispose();
-            });
-    }
-
     private string FormatMessageFlags(string msg, BattleNpc mob)
     {
         msg = msg.Replace("<rank>", $"{GetHuntRank(mob.NameId)}-Rank", true, CultureInfo.InvariantCulture);
@@ -401,7 +376,6 @@ public class HuntManager
             kvp.Value.Dispose();
         }
         _trainManager.SaveHuntTrainRecord();
-        TTS.Dispose();
     }
 
     public double GetHPP(BattleNpc mob)

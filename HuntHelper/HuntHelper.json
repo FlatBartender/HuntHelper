@@ -2,7 +2,7 @@
   "Author": "imaginary-png",
   "Name": "Hunt Helper",
   "Punchline": "basically a hunt radar + train recorder + notifications + s rank utils +++.",
-  "Description": "Hunt map with spawns points, A-Rank train recorder (w/ export/import sharing), TTS, Chat notifications, Counters for S-Rank Spawns",
+  "Description": "Hunt map with spawns points, A-Rank train recorder (w/ export/import sharing), Chat notifications, Counters for S-Rank Spawns",
   "Tags": [
     "hunt",
     "radar",

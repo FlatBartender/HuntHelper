@@ -18,7 +18,6 @@ using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Numerics;
-using System.Speech.Synthesis;
 using System.Threading;
 using System.Threading.Tasks;
 using HuntHelper.Gui.Resource;
@@ -114,16 +113,9 @@ namespace HuntHelper.Gui
         private int _huntWindowFlag = (int)(ImGuiWindowFlags.NoScrollbar | ImGuiWindowFlags.NoTitleBar);
 
         //notification stuff
-        private string _ttsVoiceName;
-        private string _ttsAMessage = "<rank> Nearby";
-        private string _ttsBMessage = "<rank> Nearby";
-        private string _ttsSMessage = "<rank> in zone";
         private string _chatAMessage = "FOUND: <name> @ <flag> ---  <rank>  --  <hpp>";
         private string _chatBMessage = "FOUND: <name> @ <flag> ---  <rank>  --  <hpp>";
         private string _chatSMessage = "FOUND: <name> @ <flag> ---  <rank>  --  <hpp>";
-        private bool _ttsAEnabled = false;
-        private bool _ttsBEnabled = false;
-        private bool _ttsSEnabled = true;
         private bool _chatAEnabled = false;
         private bool _chatBEnabled = false;
         private bool _chatSEnabled = true;
@@ -195,7 +187,6 @@ namespace HuntHelper.Gui
             _mapDataManager = mapDataManager;
             _gameGui = gameGui;
 
-            _ttsVoiceName = huntManager.TTS.Voice.Name; // load default voice first, then from settings if avail.
             _territoryName = string.Empty;
 
             ClientState_TerritoryChanged(null, 0);
@@ -827,15 +818,6 @@ namespace HuntHelper.Gui
                                     ImGui.SameLine();
                                     ImGuiUtil.ImGui_HelpMarker(GuiResources.MapGuiText["ChatMessageLabelToolTip"]);
 
-                                    ImGui.Dummy(new Vector2(0, 2f));
-                                    ImGui.TextUnformatted(GuiResources.MapGuiText["TTSMessageLabel"]);
-                                    ImGui.SameLine();
-                                    ImGui.InputText("##A Rank A TTS Msg", ref _ttsAMessage, _inputTextMaxLength);
-                                    ImGui.SameLine();
-                                    ImGui.Checkbox("##A Rank A TTS Checkbox", ref _ttsAEnabled);
-                                    ImGui.SameLine();
-                                    ImGuiUtil.ImGui_HelpMarker(GuiResources.MapGuiText["TTSMessageLabelToolTip"]);
-
                                     ImGui.Checkbox("FlyText##A Rank", ref _flyTxtAEnabled);
                                     ImGui.SameLine();
                                     ImGuiUtil.ImGui_HelpMarker(GuiResources.MapGuiText["FlyTextToolTip"]);
@@ -868,15 +850,6 @@ namespace HuntHelper.Gui
                                     ImGui.Checkbox("##A Rank B Chat Checkbox", ref _chatBEnabled);
                                     ImGui.SameLine();
                                     ImGuiUtil.ImGui_HelpMarker(GuiResources.MapGuiText["ChatMessageLabelToolTip"]);
-
-                                    ImGui.Dummy(new Vector2(0, 2f));
-                                    ImGui.TextUnformatted(GuiResources.MapGuiText["TTSMessageLabel"]);
-                                    ImGui.SameLine();
-                                    ImGui.InputText("##A Rank B TTS Msg", ref _ttsBMessage, _inputTextMaxLength);
-                                    ImGui.SameLine();
-                                    ImGui.Checkbox("##A Rank B TTS Checkbox", ref _ttsBEnabled);
-                                    ImGui.SameLine();
-                                    ImGuiUtil.ImGui_HelpMarker(GuiResources.MapGuiText["TTSMessageLabelToolTip"]);
 
                                     ImGui.Checkbox("FlyText##B Rank", ref _flyTxtBEnabled);
                                     ImGui.SameLine();
@@ -911,15 +884,6 @@ namespace HuntHelper.Gui
                                     ImGui.SameLine();
                                     ImGuiUtil.ImGui_HelpMarker(GuiResources.MapGuiText["ChatMessageLabelToolTip"]);
 
-                                    ImGui.Dummy(new Vector2(0, 2f));
-                                    ImGui.TextUnformatted(GuiResources.MapGuiText["TTSMessageLabel"]);
-                                    ImGui.SameLine();
-                                    ImGui.InputText("##A Rank S TTS Msg", ref _ttsSMessage, _inputTextMaxLength);
-                                    ImGui.SameLine();
-                                    ImGui.Checkbox("##A Rank S TTS Checkbox", ref _ttsSEnabled);
-                                    ImGui.SameLine();
-                                    ImGuiUtil.ImGui_HelpMarker(GuiResources.MapGuiText["TTSMessageLabelToolTip"]);
-
                                     ImGui.Checkbox("FlyText##S Rank", ref _flyTxtSEnabled);
                                     ImGui.SameLine();
                                     ImGuiUtil.ImGui_HelpMarker(GuiResources.MapGuiText["FlyTextToolTip"]);
@@ -945,41 +909,9 @@ namespace HuntHelper.Gui
                             if (ImGui.BeginTabItem(GuiResources.MapGuiText["SettingsTab"]))
                             {
                                 _bottomPanelHeight = tabBarHeight + 70f * ImGuiHelpers.GlobalScale;
-                                var tts = _huntManager.TTS;
-                                var voiceList = tts.GetInstalledVoices();
-                                var listOfVoiceNames = new string[voiceList.Count];
-                                for (int i = 0; i < voiceList.Count; i++)
-                                {
-                                    listOfVoiceNames[i] = voiceList[i].VoiceInfo.Name;
-                                }
-
-                                var itemPos = Array.IndexOf(listOfVoiceNames, _ttsVoiceName);
-
                                 if (ImGui.BeginChild("##settings tts child", ImGui.GetContentRegionAvail(), false, ImGuiWindowFlags.HorizontalScrollbar))
                                 {
                                     ImGui.Dummy(new Vector2(0f, 5f));
-                                    ImGui.Text(GuiResources.MapGuiText["SelectVoiceLabel"]);
-                                    ImGui.SameLine();
-
-                                    //ImGui.PushItemWidth(300f * ImGuiHelpers.GlobalScale);
-                                    if (ImGui.Combo("##TTS Voice Combo", ref itemPos, listOfVoiceNames,
-                                            listOfVoiceNames.Length))
-                                    {
-                                        tts.SelectVoice(listOfVoiceNames[itemPos]);
-                                        _ttsVoiceName = listOfVoiceNames[itemPos];
-                                        _huntManager.TTSName = _ttsVoiceName;
-
-                                        //creating new speechsynthesizer because it does not play audio asynchronously
-                                        var tempTTS = new SpeechSynthesizer();
-                                        tempTTS.SelectVoice(_ttsVoiceName);
-                                        var prompt = tempTTS.SpeakAsync($"{tts.Voice.Name} {GuiResources.MapGuiText["VoiceSelectedMessage"]}");
-                                        Task.Run(() =>
-                                        {
-                                            while (!prompt.IsCompleted);
-                                            tempTTS.Dispose();
-                                        });
-                                    }
-
                                     ImGui.Text(GuiResources.MapGuiText["PointerSizeLabel"]);
                                     ImGui.SameLine();
                                     if (ImGui.DragFloat("##Diamond Pointer Size Modifier", ref _diamondModifier, 0.01f, 1, 10, "%.2f"))
@@ -1214,16 +1146,9 @@ namespace HuntHelper.Gui
             _configuration.HuntWindowFlag = _huntWindowFlag;
             _configuration.MapWindowColour = _mapWindowColour;
             _configuration.MapWindowOpacityAsPercentage = _mapWindowOpacityAsPercentage;
-            _configuration.TTSVoiceName = _ttsVoiceName;
-            _configuration.TTSAMessage = _ttsAMessage;
-            _configuration.TTSBMessage = _ttsBMessage;
-            _configuration.TTSSMessage = _ttsSMessage;
             _configuration.ChatAMessage = _chatAMessage;
             _configuration.ChatBMessage = _chatBMessage;
             _configuration.ChatSMessage = _chatSMessage;
-            _configuration.TTSAEnabled = _ttsAEnabled;
-            _configuration.TTSBEnabled = _ttsBEnabled;
-            _configuration.TTSSEnabled = _ttsSEnabled;
             _configuration.ChatAEnabled = _chatAEnabled;
             _configuration.ChatBEnabled = _chatBEnabled;
             _configuration.ChatSEnabled = _chatSEnabled;
@@ -1288,15 +1213,9 @@ namespace HuntHelper.Gui
             _huntWindowFlag = _configuration.HuntWindowFlag;
             _mapWindowColour = _configuration.MapWindowColour;
             _mapWindowOpacityAsPercentage = _configuration.MapWindowOpacityAsPercentage;
-            _ttsAMessage = _configuration.TTSAMessage;
-            _ttsBMessage = _configuration.TTSBMessage;
-            _ttsSMessage = _configuration.TTSSMessage;
             _chatAMessage = _configuration.ChatAMessage;
             _chatBMessage = _configuration.ChatBMessage;
             _chatSMessage = _configuration.ChatSMessage;
-            _ttsAEnabled = _configuration.TTSAEnabled;
-            _ttsBEnabled = _configuration.TTSBEnabled;
-            _ttsSEnabled = _configuration.TTSSEnabled;
             _chatAEnabled = _configuration.ChatAEnabled;
             _chatBEnabled = _configuration.ChatBEnabled;
             _chatSEnabled = _configuration.ChatSEnabled;
@@ -1309,14 +1228,6 @@ namespace HuntHelper.Gui
             _pointToBRank = _configuration.PointToBRank;
             _pointToSRank = _configuration.PointToSRank;
             _diamondModifier = _configuration.PointerDiamondSizeModifier;
-
-            //if voice name available on user's pc, set as tts voice. --else default already set.
-            if (_huntManager.TTS.GetInstalledVoices().Any(v => v.VoiceInfo.Name == _configuration.TTSVoiceName))
-            {
-                _ttsVoiceName = _configuration.TTSVoiceName;
-                _huntManager.TTS.SelectVoice(_ttsVoiceName);
-                _huntManager.TTSName = _ttsVoiceName;
-            }
 
             _huntManager.ACount = _configuration.AFoundCount;
             _huntManager.BCount = _configuration.BFoundCount;
@@ -1410,7 +1321,6 @@ namespace HuntHelper.Gui
             }
 
             _huntManager.AddNearbyMobs(nearbyMobs, _mapZoneMaxCoordSize, _territoryId, MapHelpers.GetMapID(_dataManager, _territoryId),
-                _ttsAEnabled, _ttsBEnabled, _ttsSEnabled, _ttsAMessage, _ttsBMessage, _ttsSMessage,
                 _chatAEnabled, _chatBEnabled, _chatSEnabled, _chatAMessage, _chatBMessage, _chatSMessage,
                 _flyTxtAEnabled, _flyTxtBEnabled, _flyTxtSEnabled);
             UpdateStats();

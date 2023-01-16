@@ -4,7 +4,7 @@
     <Authors>https://github.com/imaginary-png</Authors>
     <Company></Company>
     <Version>1.0.0.0</Version>
-    <Description>Hunt map with spawns points, A-Rank train recorder (w/ export/import sharing), TTS, Chat notifications, Counters for S-Rank</Description>
+    <Description>Hunt map with spawns points, A-Rank train recorder (w/ export/import sharing), Chat notifications, Counters for S-Rank</Description>
     <Copyright></Copyright>
     <PackageProjectUrl>https://github.com/imaginary-png/HuntHelper</PackageProjectUrl>
   </PropertyGroup>
@@ -115,9 +115,12 @@
     <DalamudLibPath>$(appdata)\XIVLauncher\addon\Hooks\dev\</DalamudLibPath>
   </PropertyGroup>
 
+   <PropertyGroup Condition="'$([System.Runtime.InteropServices.RuntimeInformation]::IsOSPlatform($([System.Runtime.InteropServices.OSPlatform]::Linux)))'">
+    <DalamudLibPath>$(DALAMUD_HOME)/</DalamudLibPath>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="DalamudPackager" Version="2.1.10" />
-    <PackageReference Include="System.Speech" Version="7.0.0" />
     <Reference Include="FFXIVClientStructs">
       <HintPath>$(DalamudLibPath)FFXIVClientStructs.dll</HintPath>
       <Private>false</Private>
